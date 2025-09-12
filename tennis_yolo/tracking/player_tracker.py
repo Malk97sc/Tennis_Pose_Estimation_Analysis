@@ -41,10 +41,10 @@ class PlayerTracking:
 
     def draw_boxes(self,video_frames, player_detections, color_box = (0, 0, 255)):
         output_frames = []
-        for frame, player_dict in zip(video_frames, player_detections):
-            for track_id, box_pos in player_dict.items():
+        for frame, player in zip(video_frames, player_detections):
+            for track_id, box_pos in player.items():
                 x1, y1, x2, y2 = box_pos
-                cv.putText(frame, f"Player ID: {track_id}", (int(box_pos[0]), int(box_pos[1] -10 )), cv.FONT_HERSHEY_SIMPLEX, 0.9, color_box, 2)
+                cv.putText(frame, f"Player ID: {track_id}", (int(box_pos[0]), int(box_pos[1] -10 )), cv.FONT_HERSHEY_COMPLEX, 0.9, color_box, 2)
                 cv.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color_box, 2)
             output_frames.append(frame)
         
