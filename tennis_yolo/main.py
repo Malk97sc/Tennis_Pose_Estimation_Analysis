@@ -7,7 +7,7 @@ from tracking import PlayerTracking, BallTracking
 from court import CourtDetection
 
 def main():
-    video_path = RAW_DATA_DIR / "input_video.mp4"
+    video_path = RAW_DATA_DIR / "test_video.mp4"
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
@@ -16,27 +16,30 @@ def main():
     court_lines_model_path = MODELS_DIR / "court_detection" / "keypoints_model.pth"
     stub_path = MODELS_DIR / "tracker_stubs"    
 
-    #read video
+    #--------read video-------
     _, _, fps, video = read_video(video_path)
     print(f"FPS: {fps}")
 
-    #players
+    #--------players----------
     player_track = PlayerTracking(player_model_path) #player tracking instance
     player_dt = player_track.detect_player(video, read_stub = True, stub_path = stub_path / "player_detection.pkl") #player detection
     
-    #ball
+    #--------ball-------------
     ball_track = BallTracking(ball_model_path, fps) #ball tracking instance
     ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection.pkl") #ball detection
-    interpolation_method = 'linear'
-    #order = 3 #this orders is only for Spline and Polynomial interpolation
-    ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method) #ball interpolation to improve the result
+    interpolation_method = 'spline'
+    order = 3 #this orders is only for Spline and Polynomial interpolation
+    ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method, order = order) #ball interpolation to improve the result
 
-    #court lines detector
+    #-------court lines------------
     court_line = CourtDetection(court_lines_model_path)
     court_kp = court_line.predict(video[0])
-    print(court_kp)
+    #print(court_kp)
 
-    #draw boxes
+    #------pick Players---------
+    player_dt = player_track.pick_players(court_kp, player_dt)
+
+    #-------draw boxes----------
     out_video = player_track.draw_boxes(video, player_dt) 
     out_video = ball_track.draw_boxes(video, ball_dt)
 
