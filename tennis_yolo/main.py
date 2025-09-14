@@ -7,7 +7,7 @@ from tracking import PlayerTracking, BallTracking
 from court import CourtDetection
 
 def main():
-    video_path = RAW_DATA_DIR / "test_video.mp4"
+    video_path = RAW_DATA_DIR / "test_video.mp4" 
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
