@@ -14,14 +14,15 @@ def main():
     stub_path = MODELS_DIR / "tracker_stubs"    
 
     #read video
-    video = read_video(video_path)    
+    _, _, fps, video = read_video(video_path)
+    print(f"FPS: {fps}")
 
     #players
     player_track = PlayerTracking(player_model_path) #player tracking instance
     player_dt = player_track.detect_player(video, read_stub = True, stub_path = stub_path / "player_detection.pkl") #player detection
     
     #ball
-    ball_track = BallTracking(ball_model_path) #ball tracking instance
+    ball_track = BallTracking(ball_model_path, fps) #ball tracking instance
     ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection.pkl") #ball detection
     interpolation_method = 'linear'
     #order = 3 #this orders is only for Spline and Polynomial interpolation
