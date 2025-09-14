@@ -7,7 +7,7 @@ from tracking import PlayerTracking, BallTracking
 from court import CourtDetection
 
 def main():
-    video_path = RAW_DATA_DIR / "test_video.mp4" 
+    video_path = RAW_DATA_DIR / "input_video.mp4" 
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
@@ -42,6 +42,7 @@ def main():
     #-------draw boxes----------
     out_video = player_track.draw_boxes(video, player_dt) 
     out_video = ball_track.draw_boxes(video, ball_dt)
+    out_video = court_line.draw_keypoints_on_video(video, court_kp)
 
     output_video_path = output_path / f"output_video_{interpolation_method}.avi"
     save_video(out_video, output_video_path)
