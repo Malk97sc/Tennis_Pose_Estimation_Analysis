@@ -26,7 +26,7 @@ def main():
     ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection.pkl") #ball detection
     interpolation_method = 'spline'
     order = 3 #this orders is only for Spline and Polynomial interpolation
-    ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method, order) #ball interpolation to improve the result
+    ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method, order = order) #ball interpolation to improve the result
 
     #draw boxes
     out_video = player_track.draw_boxes(video, player_dt) 
