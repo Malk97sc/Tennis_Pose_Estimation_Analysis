@@ -5,7 +5,7 @@ from utils import DATA_DIR, RAW_DATA_DIR, MODELS_DIR
 from tracking import PlayerTracking, BallTracking
 
 def main():
-    video_path = RAW_DATA_DIR / "input_video.mp4"
+    video_path = RAW_DATA_DIR / "test_video.mp4"
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
@@ -24,8 +24,8 @@ def main():
     #ball
     ball_track = BallTracking(ball_model_path, fps) #ball tracking instance
     ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection.pkl") #ball detection
-    interpolation_method = 'linear'
-    #order = 3 #this orders is only for Spline and Polynomial interpolation
+    interpolation_method = 'spline'
+    order = 3 #this orders is only for Spline and Polynomial interpolation
     ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method) #ball interpolation to improve the result
 
     #draw boxes
