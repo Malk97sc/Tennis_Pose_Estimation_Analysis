@@ -4,9 +4,11 @@ import pickle
 import pandas as pd
 
 class BallTracking:
-    def __init__(self, model_path):
+    def __init__(self, model_path, fps):
         self.model = YOLO(model_path)
+        self.fps = fps
 
+    #Intepolation
     def interpolate_ball(self, ball_positions, method = 'linear', order = 3):
         ball_positions = [x.get(1, []) for x in ball_positions]
         df_positions = pd.DataFrame(ball_positions, columns=['x1', 'y1', 'x2', 'y2'])
@@ -21,6 +23,7 @@ class BallTracking:
         ball_positions = [{1: x} for x in df_positions.to_numpy().tolist()]
         return ball_positions
 
+    #Betect the ball
     def detect_ball(self, frames, read_from_stub = False, stub_path = None):
         ball_detections = []
 
@@ -30,8 +33,8 @@ class BallTracking:
             return ball_detections
 
         for frame in frames:
-            player_dict = self.detect_frame(frame)
-            ball_detections.append(player_dict)
+            ball_dic = self.detect_frame(frame)
+            ball_detections.append(ball_dic)
         
         if stub_path is not None:
             with open(stub_path, 'wb') as f:
@@ -49,9 +52,9 @@ class BallTracking:
         
         return ball
     
-    def draw_boxes(self,video_frames, player_detections, color_box = (255, 0, 0)):
+    def draw_boxes(self,video_frames, src_detections, color_box = (255, 0, 0)):
         output_frames = []
-        for frame, ball in zip(video_frames, player_detections):
+        for frame, ball in zip(video_frames, src_detections):
             for track_id, box_pos in ball.items():
                 x1, y1, x2, y2 = box_pos
                 cv.putText(frame, f"Ball: {track_id}", (int(box_pos[0]), int(box_pos[1] -10 )), cv.FONT_HERSHEY_COMPLEX, 0.9, color_box, 2)
