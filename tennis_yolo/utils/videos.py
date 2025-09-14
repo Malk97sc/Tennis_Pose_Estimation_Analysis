@@ -2,6 +2,11 @@ import cv2 as cv
 
 def read_video(source_path):
     cap = cv.VideoCapture(source_path)
+
+    #Video properties
+    fps = cap.get(cv.CAP_PROP_FPS)
+    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
     frames = []
 
     while True:
@@ -10,7 +15,8 @@ def read_video(source_path):
             break
         frames.append(frame)
     cap.release()
-    return frames
+    
+    return height, width, fps, frames
 
 def save_video(output_frames, video_path, fps = 25):
     fourcc = cv.VideoWriter_fourcc(*'MJPG')
