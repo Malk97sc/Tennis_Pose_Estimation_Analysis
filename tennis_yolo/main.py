@@ -43,7 +43,7 @@ def main():
     #-------draw boxes----------
     out_video = player_track.draw_boxes(video, player_dt, court_kp) 
     out_video = ball_track.draw_boxes(video, ball_dt)
-    out_video = court_line.draw_keypoints_on_video(video, court_kp)
+    #out_video = court_line.draw_keypoints_on_video(video, court_kp)
 
     output_video_path = output_path / f"output_video_{interpolation_method}.avi"
     save_video(out_video, output_video_path)
