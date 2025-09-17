@@ -1,48 +1,87 @@
 from ultralytics import YOLO
 import cv2 as cv
 import pickle
+import numpy as np
 
 class PlayerTracking:
-    def __init__(self, model_path):
+    def __init__(self, model_path, max_dist = 70):
+        """
+        model_path: Path of YOLO 
+        max_dist: Max distance in pixels to accept detections outside the HULL        
+        """
         self.model = YOLO(model_path)
+        self.max_dist = max_dist
     
-    def _get_center(self, box):
-        x1, y1, x2, y2 = box
-        center_x = (x1+x2) // 2
-        center_y = (y1+y2) // 2
-        return center_x, center_y
+    #Utils    
+    def _hull(self, court_kp):
+        pts = np.asarray(court_kp, dtype=np.float32).reshape(-1, 2)
+        pts_int = pts.astype(np.int32)
+        hull = cv.convexHull(pts_int)
+        return hull
     
-    def _distance(self, p1, p2):
-        return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)**0.5
+    def _ref_point_status(self, box, hull):
+        x1, y1, x2, y2 = map(int, box)
+        feet_point = ((x1 + x2) // 2, y2)
+        body_point = ((x1 + x2) // 2, (y1 + y2) // 2)
 
-    def pick_players(self, court_kp, player_dt):
-        first_player_dt = player_dt[0]
-        players = self.choose_players(court_kp, first_player_dt)
-        players_filter = []
-        
-        for player_dict in player_dt: #we gonna search the players in the choose players
-            searched_players_filter = {track_id: box for track_id, box in player_dict.items() if track_id in players}
-            players_filter.append(searched_players_filter)
-        return players_filter
+        feet_inside = cv.pointPolygonTest(hull, feet_point, False)
+        feet_dist   = cv.pointPolygonTest(hull, feet_point, True)
+        body_inside = cv.pointPolygonTest(hull, body_point, False)
+        body_dist   = cv.pointPolygonTest(hull, body_point, True)
 
-    
-    def choose_players(self, court_kp, player_dt):
+        if feet_inside >= 0:
+            return feet_point, "inside", 0.0
+        elif body_inside >= 0:
+            return body_point, "inside", 0.0
+        else:
+            if abs(feet_dist) <= abs(body_dist):
+                ref_point = feet_point
+                min_dist = abs(feet_dist)
+            else:
+                ref_point = body_point
+                min_dist = abs(body_dist)
+
+            if min_dist > self.max_dist:
+                return None, "outside", min_dist
+            return ref_point, f"dist {min_dist:.1f}", min_dist
+
+    #Pick Players
+    def choose_players(self, court_kp, player_dt, max_dist=None):
+        if max_dist is None:
+            max_dist = self.max_dist
+
+        hull = self._hull(court_kp)
         distances = []
-        for id, box in player_dt.items():
-            cx, cy = self._get_center(box)
+        for tid, box in player_dt.items():
+            ref_point, _, min_dist = self._ref_point_status(box, hull) #skip the status '_'
+            if ref_point is not None:
+                distances.append((tid, min_dist))
 
-            min_dist = float('inf')
-            for i in range(0, len(court_kp), 2):
-                court_points = (court_kp[i], court_kp[i+1])
-                distance = self._distance((cx, cy), court_points)
-                if distance < min_dist:
-                    min_dist = distance 
-            distances.append((id, min_dist))
+        if not distances:
+            return []
 
         distances.sort(key=lambda x: x[1])
-        players = [distances[0][0], distances[1][0]]
-        return players
 
+        players = [tid for tid, d in distances if d <= max_dist]
+        if len(players) >= 2:
+            return players[:2]
+        fallback = [tid for tid, _ in distances][:2]
+        return fallback
+
+    def pick_players(self, court_kp, player_dt):
+        if not player_dt:
+            return []
+
+        first_player_dt = player_dt[0]
+        players = self.choose_players(court_kp, first_player_dt, self.max_dist)
+        players_filter = []
+
+        for frame in player_dt:
+            searched_players = {track_id: box for track_id, box in frame.items() if track_id in players}
+            players_filter.append(searched_players)
+        return players_filter
+
+    #Player Detection
     def detect_player(self, frames, read_stub = False, stub_path = None):
         player_dt = []
 
@@ -67,22 +106,41 @@ class PlayerTracking:
 
         player = {}
         for box in results.boxes:
+            if box.id is None:
+                continue
             track_id = int(box.id.tolist()[0])
             result = box.xyxy.tolist()[0]
             object_id = box.cls.tolist()[0]
             object_name = id_name[object_id]
             if object_name == "person":
-                player[track_id] = result
+                player[track_id] = result #only save the result boxes of the Person class by YOLO
 
         return player
-
-    def draw_boxes(self,video_frames, player_detections, color_box = (0, 0, 255)):
+    
+    #Draw Boxes
+    def draw_boxes(self, video_frames, player_detections, court_kp, color_box = (0, 255, 0), show_court = False):
+        hull = self._hull(court_kp)
         output_frames = []
-        for frame, player in zip(video_frames, player_detections):
-            for track_id, box_pos in player.items():
-                x1, y1, x2, y2 = box_pos
-                cv.putText(frame, f"Player ID: {track_id}", (int(box_pos[0]), int(box_pos[1] -10 )), cv.FONT_HERSHEY_COMPLEX, 0.9, color_box, 2)
-                cv.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color_box, 2)
+
+        for frame, players in zip(video_frames, player_detections):
+            for track_id, box_pos in players.items():
+                x1, y1, x2, y2 = map(int, box_pos)
+
+                #Reference pts
+                ref_point, status, _ = self._ref_point_status(box_pos, hull) #skip the min distance '_'s
+                if ref_point is None:
+                    continue
+
+                #Draw
+                cv.rectangle(frame, (x1, y1), (x2, y2), color_box, 2)
+                cv.putText(frame, f"Player ID: {track_id}", (x1, y1 - 10),cv.FONT_HERSHEY_COMPLEX, 0.9, (255, 255, 255), 2)
+                # Reference point
+                cv.circle(frame, ref_point, 6, (0, 255, 0), -1)
+                cv.putText(frame, status, (ref_point[0], ref_point[1] + 20), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                if show_court:
+                    hull_int = hull.astype(int)
+                    cv.polylines(frame, [hull_int], isClosed=True, color=(0, 0, 255), thickness=2)
+
             output_frames.append(frame)
-        
+
         return output_frames
