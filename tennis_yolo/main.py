@@ -17,7 +17,8 @@ def main():
     stub_path = MODELS_DIR / "tracker_stubs"    
 
     #--------read video-------
-    _, _, fps, video = read_video(video_path)
+    height, width, fps, video = read_video(video_path)
+    print(f"Height: {height}, Width: {width}")
     print(f"FPS: {fps}")
 
     #--------players----------
@@ -40,7 +41,7 @@ def main():
     player_dt = player_track.pick_players(court_kp, player_dt)
 
     #-------draw boxes----------
-    out_video = player_track.draw_boxes(video, player_dt) 
+    out_video = player_track.draw_boxes(video, player_dt, court_kp) 
     out_video = ball_track.draw_boxes(video, ball_dt)
     out_video = court_line.draw_keypoints_on_video(video, court_kp)
 
