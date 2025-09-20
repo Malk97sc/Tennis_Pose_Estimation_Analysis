@@ -5,6 +5,7 @@ from utils import DATA_DIR, RAW_DATA_DIR, MODELS_DIR
 
 from tracking import PlayerTracking, BallTracking
 from court import CourtDetection
+from utils import refine_keypoints_subpix
 
 def main():
     video_path = RAW_DATA_DIR / "input_video.mp4" 
@@ -33,9 +34,14 @@ def main():
     ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method, order = order) #ball interpolation to improve the result
 
     #-------court lines------------
+    first_frame = video[0]
     court_line = CourtDetection(court_lines_model_path)
-    court_kp = court_line.predict(video[0])
-    #print(court_kp)
+    court_kp = court_line.predict(first_frame)
+    #print(f"raw: {court_kp}")
+    
+    #-------PostProcessing--------
+    court_kp, _ = refine_keypoints_subpix(first_frame, keypoints = court_kp, win_size = 40)
+    #print(f"refined: {court_kp}")
 
     #------pick Players---------
     player_dt = player_track.pick_players(court_kp, player_dt)
