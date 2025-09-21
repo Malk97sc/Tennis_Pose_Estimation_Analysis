@@ -10,7 +10,7 @@ from court import CourtDetection
 from utils import refine_keypoints_subpix, compute_player_stats, draw_player_stats
 
 def main():
-    video_path = RAW_DATA_DIR / "input_video.mp4" 
+    video_path = RAW_DATA_DIR / "test_video.mp4" 
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
@@ -55,7 +55,7 @@ def main():
     player_dt = player_track.pick_players(court_kp, player_dt)
 
     #------stats---------------
-    player_stats_df = compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, out_fps)
+    #player_stats_df = compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, out_fps)
 
     #-------draw boxes----------
     out_video = player_track.draw_boxes(video, player_dt, court_kp) 
@@ -63,7 +63,7 @@ def main():
     #out_video = court_line.draw_keypoints_on_video(out_video, court_kp)
 
     #------draw stats----------
-    out_video = draw_player_stats(out_video, player_stats_df)
+    #out_video = draw_player_stats(out_video, player_stats_df)
 
     output_video_path = output_path / f"output_video_{yolo_model}_{interpolation_method}.avi"
     save_video(out_video, output_video_path, out_fps)
