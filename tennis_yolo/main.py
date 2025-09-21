@@ -1,4 +1,5 @@
 import cv2 as cv
+import numpy as np
 
 from pathlib import Path
 
@@ -51,7 +52,7 @@ def main():
     #print(f"raw: {court_kp}")
     
     #-------PostProcessing--------
-    court_kp, _ = refine_keypoints_subpix(first_frame, keypoints = court_kp, win_size = 40)
+    court_kp, _ = refine_keypoints_subpix(first_frame, keypoints = court_kp, win_size = 30)
     #print(f"refined: {court_kp}")
 
     #------pick Players---------
@@ -68,15 +69,25 @@ def main():
     #-------draw boxes----------
     out_video = player_track.draw_boxes(video, player_dt, court_kp) 
     out_video = ball_track.draw_boxes(out_video, ball_dt)
-    #out_video = court_line.draw_keypoints_on_video(out_video, court_kp)
+    out_video = court_line.draw_keypoints_on_video(out_video, court_kp)
     out_video = pose_estimator.draw_pose(out_video, player_pose_dt)
 
     #------draw stats----------
     #out_video = draw_player_stats(out_video, player_stats_df)
 
-    output_video_path = output_path / f"output_video_{yolo_model}_C{interpolation_method}_pose.avi"
+    output_video_path = output_path / f"output_video_{yolo_model}_{interpolation_method}_pose.avi"
     save_video(out_video, output_video_path, out_fps)
     print(f"Save video in: {output_video_path}")
+
+    #------draw on black background----------
+    black_video = [np.zeros((height, width, 3), dtype=np.uint8) for _ in range(len(video))]
+    black_video = player_track.draw_boxes(black_video, player_dt, court_kp, show_court=True)
+    black_video = court_line.draw_keypoints_on_video(black_video, court_kp)
+    black_video = pose_estimator.draw_pose(black_video, player_pose_dt)
+
+    output_video_path = output_path / f"output_video_black_{yolo_model}_pose.avi"
+    save_video(black_video, output_video_path, out_fps)
+    print(f"Save black background video in: {output_video_path}")
 
 if __name__ == "__main__":
     main()
