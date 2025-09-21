@@ -5,7 +5,8 @@ from pathlib import Path
 
 from utils import DATA_DIR
 
-def compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, fps, save = False):
+
+def compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, fps, save=False):
     player_stats_data = [{
         'frame_num': 0,
         'player_1_number_of_shots': 0,
@@ -21,37 +22,52 @@ def compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, fps, save = Fal
         'player_2_last_player_speed': 0,
     }]
 
-    court_kp = court_kp.reshape(-1, 2) #to use (x, y)
-    COURT_WIDTH_METERS = 10.97 
+    court_kp = court_kp.reshape(-1, 2)  #to use (x, y)
+    COURT_WIDTH_METERS = 10.97
     COURT_HEIGHT_METERS = 23.78
 
     for i in range(len(ball_hit) - 1):
-        start_f = ball_hit[i] #start (x, y)
-        end_f = ball_hit[i + 1] #end (x, y)
+        start_f = ball_hit[i]
+        end_f = ball_hit[i + 1]
         dt = (end_f - start_f) / fps
 
-        #distance and speed
-        ball_start = get_center_of_bbox(ball_dt[start_f][1])
-        ball_end = get_center_of_bbox(ball_dt[end_f][1])
+        #ball
+        ball_start_bbox = list(ball_dt[start_f].values())[0]
+        ball_end_bbox = list(ball_dt[end_f].values())[0]
+
+        ball_start = get_center_of_bbox(ball_start_bbox)
+        ball_end = get_center_of_bbox(ball_end_bbox)
 
         ball_dist_pix = measure_distance(ball_start, ball_end)
         ball_dist_m = convert_pixel_distance_to_meters(
             ball_dist_pix,
             COURT_WIDTH_METERS,
-            abs(court_kp[0][0] - court_kp[1][0])  
+            abs(court_kp[0][0] - court_kp[1][0])
         )
         ball_speed = (ball_dist_m / dt) * 3.6  # km/h
 
-        #player 1
-        players_start = player_dt[start_f]
-        hitter_id = min(players_start.keys(),
-                        key=lambda pid: measure_distance(
-                            get_center_of_bbox(players_start[pid]), ball_start))
+        #players
+        players_start = list(player_dt[start_f].values())
+        players_end = list(player_dt[end_f].values())
 
-        #player 2
-        opponent_id = 1 if hitter_id == 2 else 2
-        opp_start = get_center_of_bbox(player_dt[start_f][opponent_id])
-        opp_end = get_center_of_bbox(player_dt[end_f][opponent_id])
+        if len(players_start) < 2 or len(players_end) < 2:
+            continue
+
+        #sort by Y
+        players_start_sorted = sorted(players_start, key=lambda b: get_center_of_bbox(b)[1])
+        players_end_sorted = sorted(players_end, key=lambda b: get_center_of_bbox(b)[1])
+
+        player1_start, player2_start = players_start_sorted 
+        player1_end, player2_end = players_end_sorted
+
+        p1_center = get_center_of_bbox(player1_start)
+        p2_center = get_center_of_bbox(player2_start)
+        hitter_id = 1 if measure_distance(p1_center, ball_start) < measure_distance(p2_center, ball_start) else 2
+
+        opponent_id = 2 if hitter_id == 1 else 1
+
+        opp_start = get_center_of_bbox(player1_start if opponent_id == 1 else player2_start)
+        opp_end = get_center_of_bbox(player1_end if opponent_id == 1 else player2_end)
 
         opp_dist_pix = measure_distance(opp_start, opp_end)
         opp_dist_m = convert_pixel_distance_to_meters(
@@ -82,8 +98,6 @@ def compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, fps, save = Fal
     df['player_2_average_shot_speed'] = df['player_2_total_shot_speed'] / df['player_2_number_of_shots'].replace(0, 1)
     df['player_1_average_player_speed'] = df['player_1_total_player_speed'] / df['player_1_number_of_shots'].replace(0, 1)
     df['player_2_average_player_speed'] = df['player_2_total_player_speed'] / df['player_2_number_of_shots'].replace(0, 1)
-
-    court_kp = court_kp.reshape(-1)
 
     if save:
         results_path = Path(DATA_DIR) / "results" / "player_stats.csv"
