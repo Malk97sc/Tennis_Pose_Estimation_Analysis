@@ -45,18 +45,13 @@ class PlayerPose:
         return np.array(mapped, dtype=float)
     
     def _extract_keypoints(self, res):
-        if hasattr(res, "keypoints") and res.keypoints is not None:
+        if res.keypoints is not None:
             try:
-                return [np.hstack([np.array(k.xy).reshape(-1,2),
-                                   np.array(k.conf).reshape(-1,1)]) for k in res.keypoints]
-            except Exception:
-                pass
-        if hasattr(res, "boxes") and hasattr(res.boxes, "keypoints"):
-            raw = res.boxes.keypoints
-            if isinstance(raw, np.ndarray):
-                n, total = raw.shape
-                kp_count = total // 3
-                return [raw[i].reshape(kp_count, 3) for i in range(n)]
+                kps = res.keypoints.data  # GPU: tensor [N, 17, 3] to CPU
+                return [kp.cpu().numpy() for kp in kps]  
+            except Exception as e:
+                print("Error extracting keypoints:", e)
+                return []
         return []
     
     def calc_estimate_pose(self, video, player_dt):
@@ -106,24 +101,31 @@ class PlayerPose:
     
     def draw_pose(self, video, player_pose_dt, color=(255, 255, 0)):
         out_video = []
-        skip_points = 4 #nose, left eye, right eye and ears
-
+        skip_points = 4  #nose, left eye, right eye and ears
+    
         for i, frame in enumerate(video):
             pose_dict = player_pose_dt[i] if i < len(player_pose_dt) else {}
-            for pid, kps in pose_dict.items():
+            for pid, kps in pose_dict.items():  
+                if hasattr(kps, "detach"):        #GPU o CPU
+                    kps = kps.detach().cpu().numpy()
+                elif not isinstance(kps, (list, tuple)):
+                    kps = np.array(kps)
+    
                 #points of yolo
                 for idx, (x, y, conf) in enumerate(kps):
                     if conf >= self.conf and idx > skip_points:
                         cv.circle(frame, (int(x), int(y)), self.radius, color, -1)
+    
                 #skeleton
                 for a, b in self.skeleton:
                     if a <= skip_points or b <= skip_points:
-                        continue 
+                        continue
                     if a < len(kps) and b < len(kps):
                         xa, ya, ca = kps[a]
                         xb, yb, cb = kps[b]
                         if ca >= self.conf and cb >= self.conf:
                             cv.line(frame, (int(xa), int(ya)), (int(xb), int(yb)), color, 2)
+    
             out_video.append(frame)
         return out_video
 
