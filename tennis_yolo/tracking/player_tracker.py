@@ -12,13 +12,6 @@ class PlayerTracking:
         self.model = YOLO(model_path)
         self.max_dist = max_dist
     
-    #Utils    
-    def _hull(self, court_kp):
-        pts = np.asarray(court_kp, dtype=np.float32).reshape(-1, 2)
-        pts_int = pts.astype(np.int32)
-        hull = cv.convexHull(pts_int)
-        return hull
-    
     def _ref_point_status(self, box, hull):
         x1, y1, x2, y2 = map(int, box)
         feet_point = ((x1 + x2) // 2, y2)
@@ -46,11 +39,10 @@ class PlayerTracking:
             return ref_point, f"dist {min_dist:.1f}", min_dist
 
     #Pick Players
-    def choose_players(self, court_kp, player_dt, max_dist=None):
+    def choose_players(self, player_dt, hull, max_dist=None):
         if max_dist is None:
             max_dist = self.max_dist
 
-        hull = self._hull(court_kp)
         distances = []
         for tid, box in player_dt.items():
             ref_point, _, min_dist = self._ref_point_status(box, hull) #skip the status '_'
@@ -68,12 +60,12 @@ class PlayerTracking:
         fallback = [tid for tid, _ in distances][:2]
         return fallback
 
-    def pick_players(self, court_kp, player_dt):
+    def pick_players(self, hull, player_dt):
         if not player_dt:
             return []
 
         first_player_dt = player_dt[0]
-        players = self.choose_players(court_kp, first_player_dt, self.max_dist)
+        players = self.choose_players(first_player_dt, hull ,self.max_dist)
         players_filter = []
 
         for frame in player_dt:
@@ -118,8 +110,7 @@ class PlayerTracking:
         return player
     
     #Draw Boxes
-    def draw_boxes(self, video_frames, player_detections, court_kp, color_box = (0, 255, 0), show_court = False):
-        hull = self._hull(court_kp)
+    def draw_boxes(self, video_frames, player_detections, hull, color_box = (0, 255, 0)):
         output_frames = []
 
         for frame, players in zip(video_frames, player_detections):
@@ -134,12 +125,9 @@ class PlayerTracking:
                 #Draw
                 cv.rectangle(frame, (x1, y1), (x2, y2), color_box, 2)
                 cv.putText(frame, f"Player ID: {track_id}", (x1, y1 - 10),cv.FONT_HERSHEY_COMPLEX, 0.9, (255, 255, 255), 2)
-                # Reference point
+                #Reference point
                 cv.circle(frame, ref_point, 6, (0, 255, 0), -1)
                 cv.putText(frame, status, (ref_point[0], ref_point[1] + 20), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                if show_court:
-                    hull_int = hull.astype(int)
-                    cv.polylines(frame, [hull_int], isClosed=True, color=(0, 0, 255), thickness=2)
 
             output_frames.append(frame)
 
