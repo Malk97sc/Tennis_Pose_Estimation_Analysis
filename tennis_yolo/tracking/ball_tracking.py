@@ -23,8 +23,41 @@ class BallTracking:
 
         ball_positions = [{1: x} for x in df_positions.to_numpy().tolist()]
         return ball_positions
+    
+    #Ball hit
+    def get_shot_frames(self, ball_pos, changes = 20):
+        ball_pos = [x.get(1, []) for x in ball_pos]
+        df_ball_pos = pd.DataFrame(ball_pos, columns = ['x1', 'y1', 'x2', 'y2'])
 
-    #Betect the ball
+        df_ball_pos['ball_hit'] = 0 #the ball was hit   
+        df_ball_pos['mid_y'] = (df_ball_pos['y1'] + df_ball_pos['y2']) / 2
+        df_ball_pos['mid_y_rolling_mean'] = df_ball_pos['mid_y'].rolling(window = 5, min_periods = 1).mean()
+        df_ball_pos['delta_y'] = df_ball_pos['mid_y_rolling_mean'].diff()
+
+        change_frames_for_hit = changes
+
+        for i in range(1, len(df_ball_pos) - int(change_frames_for_hit * 1.2)):
+            negative_position = df_ball_pos['delta_y'].iloc[i] > 0 and df_ball_pos['delta_y'].iloc[i + 1] < 0
+            positive_position = df_ball_pos['delta_y'].iloc[i] < 0 and df_ball_pos['delta_y'].iloc[i + 1] > 0
+
+            if negative_position or positive_position:
+                change_count = 0
+                for change_frame in range(i + 1, i + int(change_frames_for_hit * 1.2) + 1):
+                    neg_follow = df_ball_pos['delta_y'].iloc[i] > 0 and df_ball_pos['delta_y'].iloc[change_frame] < 0
+                    pos_follow = df_ball_pos['delta_y'].iloc[i] < 0 and df_ball_pos['delta_y'].iloc[change_frame] > 0
+
+                    if negative_position and neg_follow:
+                        change_count += 1
+                    elif positive_position and pos_follow:
+                        change_count += 1
+
+                if change_count > change_frames_for_hit - 1:
+                    df_ball_pos.loc[i, 'ball_hit'] = 1 
+
+        frame_ball_hits = df_ball_pos[df_ball_pos['ball_hit'] == 1].index.tolist()
+        return frame_ball_hits
+
+    #Detect the ball
     def detect_ball(self, frames, read_from_stub = False, stub_path = None):
         ball_detections = []
 
