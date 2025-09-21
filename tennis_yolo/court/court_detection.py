@@ -2,6 +2,7 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.models as models
 import cv2 as cv
+import numpy as np
 
 class CourtDetection:
     def __init__(self, model_path):
@@ -29,19 +30,33 @@ class CourtDetection:
         keypoints[1::2] *= original_h / 224.0
 
         return keypoints
-
-    def draw_keypoints(self, image, keypoints):
-        # Plot keypoints on the image
-        for i in range(0, len(keypoints), 2):
-            x = int(keypoints[i])
-            y = int(keypoints[i+1])
-            cv.putText(image, str(i//2), (x, y-10), cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 2)
-            cv.circle(image, (x, y), 5, (0, 0, 255), -1)
-        return image
     
-    def draw_keypoints_on_video(self, video_frames, keypoints):
+    def draw_keypoints_on_video(self, video_frames, keypoints, hull, show_court = False):
         output_video_frames = []
+        kp = np.array(keypoints, dtype=int).reshape(-1, 2)
+        
+        court_edges = [
+            (4, 5),   #top service line
+            (6, 7),   #bottom service line
+            (8, 9),   #net (top side)
+            (10, 11), #net (bottom side)
+            (12, 13)  #center service line
+        ]
+
         for frame in video_frames:
-            frame = self.draw_keypoints(frame, keypoints)
+            for i, (x, y) in enumerate(kp):
+                cv.putText(frame, str(i), (x, y - 10),
+                           cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 2)
+                cv.circle(frame, (x, y), 5, (0, 0, 255), -1)
+            
+            if show_court:
+                hull_int = hull.astype(int)
+                cv.polylines(frame, [hull_int], isClosed=True, color=(0, 0, 255), thickness=2)
+                
+                for (i, j) in court_edges:
+                    pt1, pt2 = tuple(kp[i]), tuple(kp[j])
+                    cv.line(frame, pt1, pt2, (0, 0, 255), 2)
+
             output_video_frames.append(frame)
+
         return output_video_frames
