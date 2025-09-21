@@ -12,8 +12,9 @@ def main():
     output_path = Path(DATA_DIR) / "results" / "video"
     output_path.mkdir(parents=True, exist_ok=True)
     
-    player_model_path = MODELS_DIR / "yolo" / "yolov8x.pt"
-    ball_model_path = MODELS_DIR / "fine_tuning" / "ball_yolov8x" / "weights" / "best.pt"
+    yolo_model = "yolo11x.pt"
+    player_model_path = MODELS_DIR / "yolo" / yolo_model
+    ball_model_path = MODELS_DIR / "fine_tuning" / "ball_yolo11x" / "weights" / "best.pt"
     court_lines_model_path = MODELS_DIR / "court_detection" / "keypoints_model.pth"
     stub_path = MODELS_DIR / "tracker_stubs"    
 
@@ -24,13 +25,13 @@ def main():
 
     #--------players----------
     player_track = PlayerTracking(player_model_path) #player tracking instance
-    player_dt = player_track.detect_player(video, read_stub = True, stub_path = stub_path / "player_detection.pkl") #player detection
+    player_dt = player_track.detect_player(video, read_stub = True, stub_path = stub_path / "player_detection_y11.pkl") #player detection
     
     #--------ball-------------
-    ball_track = BallTracking(ball_model_path, fps) #ball tracking instance
-    ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection.pkl") #ball detection
-    interpolation_method = 'spline'
-    order = 3 #this orders is only for Spline and Polynomial interpolation
+    ball_track = BallTracking(ball_model_path, fps, confidence = 0.25) #ball tracking instance
+    ball_dt = ball_track.detect_ball(video, read_from_stub = True, stub_path = stub_path / "ball_detection_y11.pkl") #ball detection
+    interpolation_method = 'linear'
+    order = 3 #this orders is only for Spline, cubicspline and Polynomial interpolation
     ball_dt = ball_track.interpolate_ball(ball_dt, method = interpolation_method, order = order) #ball interpolation to improve the result
 
     #-------court lines------------
@@ -51,7 +52,7 @@ def main():
     out_video = ball_track.draw_boxes(video, ball_dt)
     #out_video = court_line.draw_keypoints_on_video(video, court_kp)
 
-    output_video_path = output_path / f"output_video_{interpolation_method}.avi"
+    output_video_path = output_path / f"output_video_{yolo_model}_{interpolation_method}.avi"
     save_video(out_video, output_video_path)
     print(f"Save video in: {output_video_path}")
 
