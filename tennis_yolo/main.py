@@ -9,7 +9,7 @@ from utils import DATA_DIR, RAW_DATA_DIR, MODELS_DIR
 from tracking import PlayerTracking, BallTracking
 from pose_estimation import PlayerPose
 from court import CourtDetection
-from utils import refine_keypoints_subpix, compute_player_stats, draw_player_stats
+from utils import refine_keypoints_subpix, hull ,compute_player_stats, draw_player_stats
 
 def main():
     video_path = RAW_DATA_DIR / "input_video.mp4" 
@@ -54,9 +54,13 @@ def main():
     #-------PostProcessing--------
     court_kp, _ = refine_keypoints_subpix(first_frame, keypoints = court_kp, win_size = 30)
     #print(f"refined: {court_kp}")
+    
+    #-------hull------------------
+    hull_kp = hull(court_kp)
+    #print(hull_kp)
 
     #------pick Players---------
-    player_dt = player_track.pick_players(court_kp, player_dt)
+    player_dt = player_track.pick_players(hull_kp, player_dt)
 
     #------pose estimation------
     pose_estimator = PlayerPose(pose_model_path, conf_threshold = 0.001)
@@ -67,9 +71,9 @@ def main():
     #player_stats_df = compute_player_stats(player_dt, ball_dt, ball_hit, court_kp, out_fps)
 
     #-------draw boxes----------
-    out_video = player_track.draw_boxes(video, player_dt, court_kp) 
+    out_video = player_track.draw_boxes(video, player_dt, hull_kp) 
     out_video = ball_track.draw_boxes(out_video, ball_dt)
-    out_video = court_line.draw_keypoints_on_video(out_video, court_kp)
+    #out_video = court_line.draw_keypoints_on_video(out_video, court_kp, hull_kp, show_court = True)
     out_video = pose_estimator.draw_pose(out_video, player_pose_dt)
 
     #------draw stats----------
@@ -81,8 +85,8 @@ def main():
 
     #------draw on black background----------
     black_video = [np.zeros((height, width, 3), dtype=np.uint8) for _ in range(len(video))]
-    black_video = player_track.draw_boxes(black_video, player_dt, court_kp, show_court=True)
-    black_video = court_line.draw_keypoints_on_video(black_video, court_kp)
+    black_video = player_track.draw_boxes(black_video, player_dt, hull_kp)
+    black_video = court_line.draw_keypoints_on_video(black_video, court_kp, hull_kp, show_court = True)
     black_video = pose_estimator.draw_pose(black_video, player_pose_dt)
 
     output_video_path = output_path / f"output_video_black_{yolo_model}_pose.avi"
