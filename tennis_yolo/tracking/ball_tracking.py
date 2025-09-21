@@ -4,9 +4,10 @@ import pickle
 import pandas as pd
 
 class BallTracking:
-    def __init__(self, model_path, fps):
+    def __init__(self, model_path, fps, confidence = 0.15):
         self.model = YOLO(model_path)
         self.fps = fps
+        self.conf = confidence
 
     #Intepolation
     def interpolate_ball(self, ball_positions, method = 'linear', order = 3):
@@ -43,7 +44,7 @@ class BallTracking:
         return ball_detections
 
     def detect_frame(self, frame):
-        results = self.model.predict(frame, conf = 0.15)[0]
+        results = self.model.predict(frame, conf = self.conf)[0]
 
         ball = {}
         for box in results.boxes:
