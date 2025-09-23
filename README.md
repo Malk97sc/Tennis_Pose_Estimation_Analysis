@@ -97,23 +97,11 @@ Finally, we generate the output video by drawing the refined results (players, b
 
 Example of the project
 
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <img src="docs/gif/raw_wimbl.gif" width="320"/>
-  <img src="docs/gif/wimbl.gif" width="320"/>
-  <img src="docs/gif/black_wimbl.gif" width="320"/>
-</div>
-
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <img src="docs/gif/raw_roland_garros.gif" width="320"/>
-  <img src="docs/gif/roland_garros_kp.gif" width="320"/>
-  <img src="docs/gif/black_roland_garros_kp.gif" width="320"/>
-</div>
-
-<div style="display: flex; justify-content: center; gap: 10px;">
-  <img src="docs/gif/raw_us1.gif" width="320"/>
-  <img src="docs/gif/us_video1.gif" width="320"/>
-  <img src="docs/gif/black_us_video1.gif" width="320"/>
-</div>
+| Raw Video | Keypoints | Black Background |
+|-----------|-----------|------------------|
+| ![](docs/gif/raw_wimbl.gif) | ![](docs/gif/wimbl.gif) | ![](docs/gif/black_wimbl.gif) |
+| ![](docs/gif/raw_roland_garros.gif) | ![](docs/gif/roland_garros_kp.gif) | ![](docs/gif/black_roland_garros_kp.gif) |
+| ![](docs/gif/raw_us1.gif) | ![](docs/gif/us_video1.gif) | ![](docs/gif/black_us_video1.gif) |
 
 ## Future Work
 
