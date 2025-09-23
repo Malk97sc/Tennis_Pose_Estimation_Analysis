@@ -31,7 +31,7 @@ class CourtDetection:
 
         return keypoints
     
-    def draw_keypoints_on_video(self, video_frames, keypoints, hull, show_court = False):
+    def draw_keypoints_on_video(self, video_frames, keypoints, hull = None, show_court = False):
         output_video_frames = []
         kp = np.array(keypoints, dtype=int).reshape(-1, 2)
         
