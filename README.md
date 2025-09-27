@@ -27,6 +27,15 @@ Tennis-Analysis/
 │   └── main.py          # Main function
 │── README.md            # Project README
 ```
+
+## Pretrained Models
+
+Pretrained weights can be downloaded from :
+
+- [Tennis Pose Estimation](https://drive.google.com/drive/folders/1AM_OJWHaOViUmE2TyM94vvkPSAVLd85D?usp=sharing)
+
+After downloading, place the folders inside the `models/` directory, keeping the same structure.
+
 ## Features
 
 ### Players and Ball Detection
