@@ -114,7 +114,7 @@ Example of the project
 
 ## Future Work
 
-- Ball tracking: Current results are inconsistent, especially under fast ball motion. I gonna try other advanced tracking methods (like ByteTrack or DeepSORT small objects) could improve stability or try other types or CNN like [TrackNet](https://arxiv.org/pdf/1907.03698).  
+- Ball tracking: Current results are inconsistent, especially under fast ball motion. I'm gonna try other advanced tracking methods (like ByteTrack or DeepSORT small objects) could improve stability or try other types or CNN like [TrackNet](https://arxiv.org/pdf/1907.03698).  
 
 - Court detection under camera motion: At the moment, the system estimates the court keypoints only from the first frame. When the camera moves, the estimation becomes inaccurate. A dynamic re-estimation of the court using homography or keypoint tracking across frames should be implemented.
 
